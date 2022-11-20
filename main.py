@@ -107,23 +107,26 @@ for i in range(len(F)):
 
 # Aplicando condição de contorno
 
-lista_indices_Pg = []
+lista_indices_nao_apoio_Pg = []
+lista_indices_apoio_Pg = []
 Pg_filtrado = []
 for i in range(len(Pg)):
     if Pg[i] != "R":
-        lista_indices_Pg.append(i)
+        lista_indices_nao_apoio_Pg.append(i)
         Pg_filtrado.append(Pg[i])
+    else:
+        lista_indices_apoio_Pg.append(i)
 
 Kg_filtrado_linha = []
 for linha in range(len(Kg)):
-    if linha in lista_indices_Pg:
+    if linha in lista_indices_nao_apoio_Pg:
         Kg_filtrado_linha.append(Kg[linha])
 
 Kg_filtrado = []
 for linha in range(len(Kg_filtrado_linha)):
     l = []
     for coluna in range(len(Kg_filtrado_linha[linha])):
-        if coluna in lista_indices_Pg:
+        if coluna in lista_indices_nao_apoio_Pg:
             l.append(Kg_filtrado_linha[linha][coluna])
     Kg_filtrado.append(l)
 
@@ -131,7 +134,7 @@ for linha in range(len(Kg_filtrado_linha)):
 # Obtendo os deslocamentos nodais
 
 multiplicador_das_incognitas = []
-resultados = Pg_filtrado
+apoios = Pg_filtrado
 
 contador = 0
 while contador < len(Kg_filtrado):
@@ -143,15 +146,27 @@ while contador < len(Kg_filtrado):
     multiplicador_das_incognitas.append(l)
     contador+=1
 
-deslocamentos = np.linalg.solve(multiplicador_das_incognitas, resultados)
+deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
 
 deslocamentos_expandido = np.zeros((len(Pg),1))
 copia_deslocamentos = deslocamentos
 for i in range(len(deslocamentos_expandido)):
-    if i in lista_indices_Pg:
+    if i in lista_indices_nao_apoio_Pg:
         deslocamentos_expandido[i] = copia_deslocamentos[0]
         copia_deslocamentos = np.delete(copia_deslocamentos, 0)
 
-print(deslocamentos_expandido)
 
+# Obtendo as reações de apoio estrutural
+
+apoios = []
+for linha in range(len(Kg)):
+    calculo = [0]
+    if linha in lista_indices_apoio_Pg:
+        for coluna in range(len(Kg[linha])):
+            calculo += Kg[linha][coluna] * deslocamentos_expandido[coluna]
+    apoios.append(calculo[0])
+
+dicio_apoios = {"R1x": apoios[0],"R1y": apoios[1],"R2x": apoios[2],"R2y": apoios[3]}
+
+print(dicio_apoios)
 
