@@ -2,6 +2,9 @@ import numpy as np
 from funcoesTermosol import importa
 [nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
 
+
+# Definindo elementos
+
 x1 = N[0][0]
 y1 = N[1][0]
 x2 = N[0][1]
@@ -20,20 +23,26 @@ cos2 = (x3-x2)/L2
 sen3 = (y1-y3)/L3
 cos3 = (x1-x3)/L3
 
+
+# Calculando a matriz de rigidez de cada elemento
+
 K1 = Inc[0][2]*Inc[0][3]/L1*np.array([[cos1**2, cos1*sen1, -cos1**2, -cos1*sen1],
-                      [cos1*sen1, sen1**2, -cos1*sen1, -sen1**2], 
-                      [-cos1**2, -cos1*sen1, cos1**2, cos1*sen1], 
-                      [-cos1*sen1, -sen1**2, cos1*sen1, sen1**2]])
+                                      [cos1*sen1, sen1**2, -cos1*sen1, -sen1**2], 
+                                      [-cos1**2, -cos1*sen1, cos1**2, cos1*sen1], 
+                                      [-cos1*sen1, -sen1**2, cos1*sen1, sen1**2]])
 
 K2 = Inc[1][2]*Inc[1][3]/L2*np.array([[cos2**2, cos2*sen2, -cos2**2, -cos2*sen2],
-                      [cos2*sen2, sen2**2, -cos2*sen2, -sen2**2],
-                      [-cos2**2, -cos2*sen2, cos2**2, cos2*sen2],
-                      [-cos2*sen2, -sen2**2, cos2*sen2, sen2**2]])
+                                      [cos2*sen2, sen2**2, -cos2*sen2, -sen2**2],
+                                      [-cos2**2, -cos2*sen2, cos2**2, cos2*sen2],
+                                      [-cos2*sen2, -sen2**2, cos2*sen2, sen2**2]])
 
 K3 = Inc[2][2]*Inc[2][3]/L3*np.array([[cos3**2, cos3*sen3, -cos3**2, -cos3*sen3],
-                      [cos3*sen3, sen3**2, -cos3*sen3, -sen3**2],
-                      [-cos3**2, -cos3*sen3, cos3**2, cos3*sen3],
-                      [-cos3*sen3, -sen3**2, cos3*sen3, sen3**2]])
+                                      [cos3*sen3, sen3**2, -cos3*sen3, -sen3**2],
+                                      [-cos3**2, -cos3*sen3, cos3**2, cos3*sen3],
+                                      [-cos3*sen3, -sen3**2, cos3*sen3, sen3**2]])
+
+
+# Calculando a matriz de rigidez global 
 
 def matriz_para_dicio(K, n):
     dicio = {}
@@ -78,6 +87,9 @@ for linha in range(len(Kg)):
                 break
         Kg[linha][coluna] = v
 
+
+# Formando o vetor global de forças concentradas
+
 Pg = []
 for i in range(len(F)):
     if F[i][0] == 0:
@@ -91,3 +103,55 @@ for i in range(len(F)):
             Pg.append(0)
     else:
         Pg.append(F[i][0])
+
+
+# Aplicando condição de contorno
+
+lista_indices_Pg = []
+Pg_filtrado = []
+for i in range(len(Pg)):
+    if Pg[i] != "R":
+        lista_indices_Pg.append(i)
+        Pg_filtrado.append(Pg[i])
+
+Kg_filtrado_linha = []
+for linha in range(len(Kg)):
+    if linha in lista_indices_Pg:
+        Kg_filtrado_linha.append(Kg[linha])
+
+Kg_filtrado = []
+for linha in range(len(Kg_filtrado_linha)):
+    l = []
+    for coluna in range(len(Kg_filtrado_linha[linha])):
+        if coluna in lista_indices_Pg:
+            l.append(Kg_filtrado_linha[linha][coluna])
+    Kg_filtrado.append(l)
+
+
+# Obtendo os deslocamentos nodais
+
+multiplicador_das_incognitas = []
+resultados = Pg_filtrado
+
+contador = 0
+while contador < len(Kg_filtrado):
+    l = []
+    for linha in range(len(Kg_filtrado)):
+        for coluna in range(len(Kg_filtrado[linha])):
+            if coluna == contador:
+                l.append(Kg_filtrado[linha][coluna])
+    multiplicador_das_incognitas.append(l)
+    contador+=1
+
+deslocamentos = np.linalg.solve(multiplicador_das_incognitas, resultados)
+
+deslocamentos_expandido = np.zeros((len(Pg),1))
+copia_deslocamentos = deslocamentos
+for i in range(len(deslocamentos_expandido)):
+    if i in lista_indices_Pg:
+        deslocamentos_expandido[i] = copia_deslocamentos[0]
+        copia_deslocamentos = np.delete(copia_deslocamentos, 0)
+
+print(deslocamentos_expandido)
+
+
