@@ -45,98 +45,53 @@ class elemento:
                                       [-self.cos**2, -self.cos*self.sen, self.cos**2, self.cos*self.sen], 
                                       [-self.cos*self.sen, -self.sen**2, self.cos*self.sen, self.sen**2]])
         self.dicio = matriz_para_dicio(self.K, posicao)
+    
+    def pegar_dicio(self):
+        return self.dicio
 
-elementos = []
-for i in range(nm):
-    e = elemento(i+1, Inc[i][0], Inc[i][1], Inc[i][2], Inc[i][3])
-    elementos.append(e)
+def criacao_elementos():
+    elementos = []  
+    for i in range(nm):
+        e = elemento(i+1, Inc[i][0], Inc[i][1], Inc[i][2], Inc[i][3])
+        elementos.append(e)
+    return elementos
 
-trelicas = []
-for element in elementos:
-    trelica = []
-    for e2 in elementos:
-        if e2.no0 == element.nof and e2.no0 != element.no0:
-            element2 = e2
-            break
-    for e3 in elementos:
-        if e3.no0 == element2.nof and e3.no0 != e2.no0:
-            element3 = e3
-            break
-    trelica.append(element.posicao)
-    trelica.append(element2.posicao)
-    trelica.append(element3.posicao)
-    if sorted(trelica) not in trelicas:
-        trelicas.append(trelica)
+elementos = criacao_elementos()
 
-print(trelicas)
+def criacao_trelicas(elementos):
+    trelicas = []
+    trelicas_posicoes = []
+    for element in elementos:
+        trelica = []
+        t_posicoes = []
+        for e2 in elementos:
+            if e2.no0 == element.nof:
+                for e3 in elementos:
+                    if e3.no0 == e2.nof or e3.nof == e2.nof:
+                        if e3.nof == element.no0 or e3.no0 == element.no0:
+                            trelica.append(element)
+                            trelica.append(e2)
+                            trelica.append(e3)
+                            t_posicoes.append(element.posicao)
+                            t_posicoes.append(e2.posicao)
+                            t_posicoes.append(e3.posicao)
+                            break
+        if trelica != [] and trelica not in trelicas:
+            trelicas.append(trelica)
+            trelicas_posicoes.append(t_posicoes)
+    return trelicas, trelicas_posicoes
 
+trelicas, trelicas_posicoes = criacao_trelicas(elementos)
 
-# x1 = N[0][0]
-# y1 = N[1][0]
-# x2 = N[0][1]
-# y2 = N[1][1]
-# x3 = N[0][2]
-# y3 = N[1][2]
+########
+apoios = []
+deslocamentos = []
 
-# L1 = ((x2 - x1)**2 + (y2-y1)**2)**0.5
-# L2 = ((x3 - x2)**2 + (y3-y2)**2)**0.5
-# L3 = ((x1 - x3)**2 + (y1-y3)**2)**0.5
-
-# sen1 = (y2-y1)/L1
-# cos1 = (x2-x1)/L1
-# sen2 = (y3-y2)/L2
-# cos2 = (x3-x2)/L2
-# sen3 = (y1-y3)/L3
-# cos3 = (x1-x3)/L3
-
-
-# Calculando a matriz de rigidez de cada elemento
-
-# K1 = Inc[0][2]*Inc[0][3]/L1*np.array([[cos1**2, cos1*sen1, -cos1**2, -cos1*sen1],
-#                                       [cos1*sen1, sen1**2, -cos1*sen1, -sen1**2], 
-#                                       [-cos1**2, -cos1*sen1, cos1**2, cos1*sen1], 
-#                                       [-cos1*sen1, -sen1**2, cos1*sen1, sen1**2]])
-
-# K2 = Inc[1][2]*Inc[1][3]/L2*np.array([[cos2**2, cos2*sen2, -cos2**2, -cos2*sen2],
-#                                       [cos2*sen2, sen2**2, -cos2*sen2, -sen2**2],
-#                                       [-cos2**2, -cos2*sen2, cos2**2, cos2*sen2],
-#                                       [-cos2*sen2, -sen2**2, cos2*sen2, sen2**2]])
-
-# K3 = Inc[2][2]*Inc[2][3]/L3*np.array([[cos3**2, cos3*sen3, -cos3**2, -cos3*sen3],
-#                                       [cos3*sen3, sen3**2, -cos3*sen3, -sen3**2],
-#                                       [-cos3**2, -cos3*sen3, cos3**2, cos3*sen3],
-#                                       [-cos3*sen3, -sen3**2, cos3*sen3, sen3**2]])
-
-
-# Calculando a matriz de rigidez global 
-
-# def matriz_para_dicio(K, posicao):
-#     dicio = {}
-#     for linha in range(len(K)):
-#         for coluna in range(len(K[linha])):
-#             if posicao == 1:
-#                 dicio[linha, coluna] = [(linha, coluna),K[linha][coluna]]
-#             if posicao == 2:
-#                 dicio[linha, coluna] = [(linha+2, coluna+2),K[linha][coluna]]
-#             if posicao == 3:
-#                 if linha == 0 or linha == 1:
-#                     if coluna == 0 or coluna == 1:
-#                         dicio[linha, coluna] = [(linha+4, coluna+4),K[linha][coluna]]
-#                     elif coluna == 2 or coluna == 3:
-#                         dicio[linha, coluna] = [(linha+4, coluna-2),K[linha][coluna]]
-#                 elif linha == 2 or linha == 3:
-#                     if coluna == 0 or coluna == 1:
-#                         dicio[linha, coluna] = [(linha-2, coluna+4),K[linha][coluna]]
-#                     elif coluna == 2 or coluna == 3:
-#                         dicio[linha, coluna] = [(linha-2, coluna-2),K[linha][coluna]]
-#     return dicio
-
-# dicio1 = matriz_para_dicio(K1, 1)
-# dicio2 = matriz_para_dicio(K2, 2)
-# dicio3 = matriz_para_dicio(K3, 3)
-
-def calculando_Kg(dicio1, dicio2, dicio3):
+def calcula_Kg(trelica):
     Kg = np.zeros((6,6))
+    dicio1 = trelica[0].dicio
+    dicio2 = trelica[1].dicio
+    dicio3 = trelica[2].dicio
     for linha in range(len(Kg)):
         for coluna in range(len(Kg[linha])):
             v = 0
@@ -155,25 +110,22 @@ def calculando_Kg(dicio1, dicio2, dicio3):
             Kg[linha][coluna] = v
     return Kg
 
-
-# Formando o vetor global de forças concentradas
-
-Pg = []
-for i in range(len(F)):
-    if F[i][0] == 0:
-        c = False
-        if i <= nr:
+def calcula_Pg():
+    Pg = []
+    for i in range(len(F)):
+        if F[i][0] == 0:
+            c = False
             for j in R:
                 if i == j[0]:
                     Pg.append("R")
                     c = True
-        if c == False:
-            Pg.append(0)
-    else:
-        Pg.append(F[i][0])
+            if c == False:
+                Pg.append(0)
+        else:
+            Pg.append(F[i][0])
+    return Pg
 
-
-# Aplicando condição de contorno
+Pg = calcula_Pg()
 
 lista_indices_nao_apoio_Pg = []
 lista_indices_apoio_Pg = []
