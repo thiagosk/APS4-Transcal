@@ -1,9 +1,6 @@
 import numpy as np
 from funcoesTermosol import importa
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
-
-
-# Definindo elementos
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo.xlsx')
 
 def matriz_para_dicio(K, posicao):
     dicio = {}
@@ -46,8 +43,9 @@ class elemento:
                                       [-self.cos*self.sen, -self.sen**2, self.cos*self.sen, self.sen**2]])
         self.dicio = matriz_para_dicio(self.K, posicao)
     
-    def pegar_dicio(self):
-        return self.dicio
+    def get_posicao(self):
+        return self.posicao
+
 
 def criacao_elementos():
     elementos = []  
@@ -57,6 +55,7 @@ def criacao_elementos():
     return elementos
 
 elementos = criacao_elementos()
+
 
 def criacao_trelicas(elementos):
     trelicas = []
@@ -76,16 +75,14 @@ def criacao_trelicas(elementos):
                             t_posicoes.append(e2.posicao)
                             t_posicoes.append(e3.posicao)
                             break
-        if trelica != [] and trelica not in trelicas:
-            trelicas.append(trelica)
-            trelicas_posicoes.append(t_posicoes)
+        if trelica != []:
+            if sorted(t_posicoes) not in trelicas_posicoes:
+                trelicas.append(trelica)
+                trelicas_posicoes.append(t_posicoes)
     return trelicas, trelicas_posicoes
 
 trelicas, trelicas_posicoes = criacao_trelicas(elementos)
 
-########
-apoios = []
-deslocamentos = []
 
 def calcula_Kg(trelica):
     Kg = np.zeros((6,6))
@@ -110,6 +107,11 @@ def calcula_Kg(trelica):
             Kg[linha][coluna] = v
     return Kg
 
+Kg_lista = []
+for trelica in trelicas:
+    Kg_lista.append(calcula_Kg(trelica))
+
+
 def calcula_Pg():
     Pg = []
     for i in range(len(F)):
@@ -127,31 +129,42 @@ def calcula_Pg():
 
 Pg = calcula_Pg()
 
-lista_indices_nao_apoio_Pg = []
-lista_indices_apoio_Pg = []
-Pg_filtrado = []
-for i in range(len(Pg)):
-    if Pg[i] != "R":
-        lista_indices_nao_apoio_Pg.append(i)
-        Pg_filtrado.append(Pg[i])
-    else:
-        lista_indices_apoio_Pg.append(i)
 
-Kg_filtrado_linha = []
-for linha in range(len(Kg)):
-    if linha in lista_indices_nao_apoio_Pg:
-        Kg_filtrado_linha.append(Kg[linha])
+def filtra_Pg(Pg):
+    lista_indices_nao_apoio_Pg = []
+    lista_indices_apoio_Pg = []
+    Pg_filtrado = []
+    for i in range(len(Pg)):
+        if Pg[i] != "R":
+            lista_indices_nao_apoio_Pg.append(i)
+            Pg_filtrado.append(Pg[i])
+        else:
+            lista_indices_apoio_Pg.append(i)
+    return Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg
 
-Kg_filtrado = []
-for linha in range(len(Kg_filtrado_linha)):
-    l = []
-    for coluna in range(len(Kg_filtrado_linha[linha])):
-        if coluna in lista_indices_nao_apoio_Pg:
-            l.append(Kg_filtrado_linha[linha][coluna])
-    Kg_filtrado.append(l)
+Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg = filtra_Pg(Pg)
 
 
-# Obtendo os deslocamentos nodais
+def filtra_Kg(Kg, lista_indices_nao_apoio_Pg):
+
+    Kg_filtrado_linha = []
+    for linha in range(len(Kg)):
+        if linha in lista_indices_nao_apoio_Pg:
+            Kg_filtrado_linha.append(Kg[linha])
+
+    Kg_filtrado = []
+    for linha in range(len(Kg_filtrado_linha)):
+        l = []
+        for coluna in range(len(Kg_filtrado_linha[linha])):
+            if coluna in lista_indices_nao_apoio_Pg:
+                l.append(Kg_filtrado_linha[linha][coluna])
+        Kg_filtrado.append(l)
+    return Kg_filtrado
+
+Kg_filtrado_lista = []
+for Kg in Kg_lista:
+    Kg_filtrado_lista = filtra_Kg(Kg, lista_indices_nao_apoio_Pg)
+
 
 multiplicador_das_incognitas = []
 apoios = Pg_filtrado
