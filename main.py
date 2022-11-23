@@ -128,7 +128,7 @@ def calcula_Pg():
     return Pg
 
 Pg = calcula_Pg()
-
+# print(Pg)
 
 def filtra_Pg(Pg):
     lista_indices_nao_apoio_Pg = []
@@ -143,14 +143,16 @@ def filtra_Pg(Pg):
     return Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg
 
 Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg = filtra_Pg(Pg)
-
+# print(Pg_filtrado)
+# print(lista_indices_apoio_Pg)
 
 def filtra_Kg(Kg, lista_indices_nao_apoio_Pg):
-
     Kg_filtrado_linha = []
+    posicao_em_Pg = []
     for linha in range(len(Kg)):
         if linha in lista_indices_nao_apoio_Pg:
             Kg_filtrado_linha.append(Kg[linha])
+            posicao_em_Pg.append(linha)
 
     Kg_filtrado = []
     for linha in range(len(Kg_filtrado_linha)):
@@ -159,13 +161,19 @@ def filtra_Kg(Kg, lista_indices_nao_apoio_Pg):
             if coluna in lista_indices_nao_apoio_Pg:
                 l.append(Kg_filtrado_linha[linha][coluna])
         Kg_filtrado.append(l)
-    return Kg_filtrado
+    return Kg_filtrado, posicao_em_Pg
 
 Kg_filtrado_lista = []
+posicao_em_Pg_lista= []
 for Kg in Kg_lista:
-    Kg_filtrado_lista.append(filtra_Kg(Kg, lista_indices_nao_apoio_Pg))
+    Kg_filtrado, posicao_em_Pg = filtra_Kg(Kg, lista_indices_nao_apoio_Pg)
+    Kg_filtrado_lista.append(Kg_filtrado)
+    posicao_em_Pg_lista.append(posicao_em_Pg)
+# print(Kg_filtrado_lista)
+# print(posicao_em_Pg_lista)
 
-def calculo_deslocamentos(Kg_filtrado):
+
+def calculo_deslocamentos(Kg_filtrado, posicao_em_Pg):
     multiplicador_das_incognitas = []
     apoios = Pg_filtrado
 
@@ -180,20 +188,23 @@ def calculo_deslocamentos(Kg_filtrado):
         contador+=1
 
     deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
+    return deslocamentos, posicao_em_Pg
 
-    return deslocamentos
-
-deslocamentos_lista =[]
+deslocamentos_dicio = {}
 for Kg_filtrado in Kg_filtrado_lista:
-    deslocamentos_lista.append(calculo_deslocamentos(Kg_filtrado))
-
+    deslocamentos, posicao_em_Pg = calculo_deslocamentos(Kg_filtrado, posicao_em_Pg)
+    for i in range(len(posicao_em_Pg)):
+        deslocamentos_dicio[posicao_em_Pg[i]] = deslocamentos[i] 
+# print(deslocamentos_dicio)
 
 deslocamentos_expandido = np.zeros((len(Pg),1))
-copia_deslocamentos = deslocamentos
-for i in range(len(deslocamentos_expandido)):
-    if i in lista_indices_nao_apoio_Pg:
-        deslocamentos_expandido[i] = copia_deslocamentos[0]
-        copia_deslocamentos = np.delete(copia_deslocamentos, 0)
+contagem = np.arange(0, len(Pg))
+for i in deslocamentos_dicio:
+    if deslocamentos_dicio[i]:
+        deslocamentos_expandido[i] = deslocamentos_dicio[i]
+    else:
+        deslocamentos_expandido[i] = 0
+# print(deslocamentos_expandido)
 
 
 # Obtendo as reações de apoio estrutural
@@ -210,7 +221,7 @@ for linha in range(len(Kg)):
 # Escrevendo o arquivo de saída
 
 meuArquivo = open('saida.txt', 'w')
-meuArquivo.write(f"Reacoes de apoio [N]\posicao{apoios}\posicao")
-meuArquivo.write(f"\nDeslocamentos [m]\posicao{deslocamentos_expandido}\posicao")
+meuArquivo.write(f"Reacoes de apoio [N]\n{apoios}\n")
+meuArquivo.write(f"\nDeslocamentos [m]\n{deslocamentos_expandido}\n")
 meuArquivo.close()
 
