@@ -163,23 +163,30 @@ def filtra_Kg(Kg, lista_indices_nao_apoio_Pg):
 
 Kg_filtrado_lista = []
 for Kg in Kg_lista:
-    Kg_filtrado_lista = filtra_Kg(Kg, lista_indices_nao_apoio_Pg)
+    Kg_filtrado_lista.append(filtra_Kg(Kg, lista_indices_nao_apoio_Pg))
 
+def calculo_deslocamentos(Kg_filtrado):
+    multiplicador_das_incognitas = []
+    apoios = Pg_filtrado
 
-multiplicador_das_incognitas = []
-apoios = Pg_filtrado
+    contador = 0
+    while contador < len(Kg_filtrado):
+        l = []
+        for linha in range(len(Kg_filtrado)):
+            for coluna in range(len(Kg_filtrado[linha])):
+                if coluna == contador:
+                    l.append(Kg_filtrado[linha][coluna])
+        multiplicador_das_incognitas.append(l)
+        contador+=1
 
-contador = 0
-while contador < len(Kg_filtrado):
-    l = []
-    for linha in range(len(Kg_filtrado)):
-        for coluna in range(len(Kg_filtrado[linha])):
-            if coluna == contador:
-                l.append(Kg_filtrado[linha][coluna])
-    multiplicador_das_incognitas.append(l)
-    contador+=1
+    deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
 
-deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
+    return deslocamentos
+
+deslocamentos_lista =[]
+for Kg_filtrado in Kg_filtrado_lista:
+    deslocamentos_lista.append(calculo_deslocamentos(Kg_filtrado))
+
 
 deslocamentos_expandido = np.zeros((len(Pg),1))
 copia_deslocamentos = deslocamentos

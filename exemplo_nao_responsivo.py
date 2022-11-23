@@ -1,6 +1,6 @@
 import numpy as np
 from funcoesTermosol import importa
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo.xlsx')
 
 
 # Definindo elementos
