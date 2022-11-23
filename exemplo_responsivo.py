@@ -41,13 +41,10 @@ class elemento:
                                       [self.cos*self.sen, self.sen**2, -self.cos*self.sen, -self.sen**2], 
                                       [-self.cos**2, -self.cos*self.sen, self.cos**2, self.cos*self.sen], 
                                       [-self.cos*self.sen, -self.sen**2, self.cos*self.sen, self.sen**2]])
-        self.dicio = {}
+        self.dicio = matriz_para_dicio(self.K, posicao)
     
     def get_posicao(self):
         return self.posicao
-
-    def make_dicio(self, posicao_trelica):
-        self.dicio = matriz_para_dicio(self.K, posicao_trelica)
 
 
 def criacao_elementos():
@@ -82,20 +79,10 @@ def criacao_trelicas(elementos):
             if sorted(t_posicoes) not in trelicas_posicoes:
                 trelicas.append(trelica)
                 trelicas_posicoes.append(t_posicoes)
-
-    # formando o dicio de cada elemento
-    for n_trelicas in range(len(trelicas)):
-        for n_elementos in range(len(trelicas[n_trelicas])):
-            for lista in trelicas_posicoes:
-                for n_posicoes in range(len(lista)):
-                    if trelicas[n_trelicas][n_elementos].posicao == lista[n_posicoes]:
-                        posicao_trelica = n_posicoes+1
-            trelicas[n_trelicas][n_elementos].make_dicio(posicao_trelica)
-
     return trelicas, trelicas_posicoes
 
 trelicas, trelicas_posicoes = criacao_trelicas(elementos)
-
+# print(trelicas_posicoes)
 
 def calcula_Kg(trelica):
     Kg = np.zeros((6,6))
@@ -123,7 +110,7 @@ def calcula_Kg(trelica):
 Kg_lista = []
 for trelica in trelicas:
     Kg_lista.append(calcula_Kg(trelica))
-
+# print(Kg_lista)
 
 def calcula_Pg():
     Pg = []
@@ -141,7 +128,7 @@ def calcula_Pg():
     return Pg
 
 Pg = calcula_Pg()
-
+# print(Pg)
 
 def filtra_Pg(Pg):
     lista_indices_nao_apoio_Pg = []
@@ -156,7 +143,8 @@ def filtra_Pg(Pg):
     return Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg
 
 Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg = filtra_Pg(Pg)
-
+# print(Pg_filtrado)
+# print(lista_indices_apoio_Pg)
 
 def filtra_Kg(Kg, lista_indices_nao_apoio_Pg):
     Kg_filtrado_linha = []
@@ -181,6 +169,8 @@ for Kg in Kg_lista:
     Kg_filtrado, posicao_em_Pg = filtra_Kg(Kg, lista_indices_nao_apoio_Pg)
     Kg_filtrado_lista.append(Kg_filtrado)
     posicao_em_Pg_lista.append(posicao_em_Pg)
+# print(Kg_filtrado_lista)
+# print(posicao_em_Pg_lista)
 
 
 def calculo_deslocamentos(Kg_filtrado, posicao_em_Pg):
@@ -205,33 +195,33 @@ for Kg_filtrado in Kg_filtrado_lista:
     deslocamentos, posicao_em_Pg = calculo_deslocamentos(Kg_filtrado, posicao_em_Pg)
     for i in range(len(posicao_em_Pg)):
         deslocamentos_dicio[posicao_em_Pg[i]] = deslocamentos[i] 
-print(deslocamentos_dicio)
+# print(deslocamentos_dicio)
 
-# deslocamentos_expandido = np.zeros((len(Pg),1))
-# contagem = np.arange(0, len(Pg))
-# for i in deslocamentos_dicio:
-#     if deslocamentos_dicio[i]:
-#         deslocamentos_expandido[i] = deslocamentos_dicio[i]
-#     else:
-#         deslocamentos_expandido[i] = 0
-# # print(deslocamentos_expandido)
-
-
-# # Obtendo as reações de apoio estrutural
-
-# apoios =  []
-# for linha in range(len(Kg)):
-#     calculo = [0]
-#     if linha in lista_indices_apoio_Pg:
-#         for coluna in range(len(Kg[linha])):
-#             calculo += Kg[linha][coluna] * deslocamentos_expandido[coluna]
-#         apoios.append([round(calculo[0],1)])
+deslocamentos_expandido = np.zeros((len(Pg),1))
+contagem = np.arange(0, len(Pg))
+for i in deslocamentos_dicio:
+    if deslocamentos_dicio[i]:
+        deslocamentos_expandido[i] = deslocamentos_dicio[i]
+    else:
+        deslocamentos_expandido[i] = 0
+# print(deslocamentos_expandido)
 
 
-# # Escrevendo o arquivo de saída
+# Obtendo as reações de apoio estrutural
 
-# meuArquivo = open('saida.txt', 'w')
-# meuArquivo.write(f"Reacoes de apoio [N]\n{apoios}\n")
-# meuArquivo.write(f"\nDeslocamentos [m]\n{deslocamentos_expandido}\n")
-# meuArquivo.close()
+apoios =  []
+for linha in range(len(Kg)):
+    calculo = [0]
+    if linha in lista_indices_apoio_Pg:
+        for coluna in range(len(Kg[linha])):
+            calculo += Kg[linha][coluna] * deslocamentos_expandido[coluna]
+        apoios.append([round(calculo[0],1)])
+
+
+# Escrevendo o arquivo de saída
+
+meuArquivo = open('saida.txt', 'w')
+meuArquivo.write(f"Reacoes de apoio [N]\n{apoios}\n")
+meuArquivo.write(f"\nDeslocamentos [m]\n{deslocamentos_expandido}\n")
+meuArquivo.close()
 

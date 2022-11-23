@@ -147,7 +147,6 @@ while contador < len(Kg_filtrado):
     contador+=1
 
 deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
-print(deslocamentos)
 
 
 deslocamentos_expandido = np.zeros((len(Pg),1))
