@@ -1,7 +1,7 @@
 import numpy as np
 from funcoesTermosol import importa
+from numpy.linalg import det
 [nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo.xlsx')
-
 
 # Definindo elementos
 
@@ -87,7 +87,7 @@ for linha in range(len(Kg)):
                 break
         Kg[linha][coluna] = v
 
-
+# print(det(Kg))
 # Formando o vetor global de forças concentradas
 
 Pg = []
@@ -104,7 +104,7 @@ for i in range(len(F)):
     else:
         Pg.append(F[i][0])
 
-
+# print(Pg)
 # Aplicando condição de contorno
 
 lista_indices_nao_apoio_Pg = []
@@ -145,9 +145,10 @@ while contador < len(Kg_filtrado):
                 l.append(Kg_filtrado[linha][coluna])
     multiplicador_das_incognitas.append(l)
     contador+=1
-
+# print(multiplicador_das_incognitas)
+# print(apoios)
 deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
-
+print(deslocamentos)
 
 deslocamentos_expandido = np.zeros((len(Pg),1))
 copia_deslocamentos = deslocamentos
