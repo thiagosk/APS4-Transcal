@@ -138,6 +138,7 @@ Kg_lista = []
 for i in range(len(trelicas)):
     Kg_lista.append(calcula_Kg(trelicas[i], trelica_posicoes[i]))
 
+
 def calcula_Pg_total():
     Pg = []
     for i in range(len(F)):
@@ -277,6 +278,29 @@ for i in range(len(Kg_lista)):
     posicao_em_Pg_lista.append(posicao_em_Pg)
     Pg_filtrado_trelica_lista.append(Pg_filtrado_trelica)
 
+
+###### funcoes deslocamentos ######
+
+def jacobi(n_iteracoes_max, tolerancia, Pg_filtrado, Kg_filtrado):
+    deslocamento = np.zeros((len(Kg_filtrado), 1))
+    deslocamento_novo = np.zeros((len(Kg_filtrado), 1))
+    erros_lista = np.zeros((len(Kg_filtrado), 1))
+    for iteracao in range(n_iteracoes_max):
+        for n_linha in range(len(Kg_filtrado)):
+            total_xa = 0
+            for n_coluna in range(0,len(Kg_filtrado[0])):
+                if n_coluna != n_linha:
+                    total_xa += Kg_filtrado[n_linha][n_coluna] * deslocamento[n_coluna]    
+            deslocamento_novo[n_linha] = (Pg_filtrado[n_linha] - total_xa) / Kg_filtrado[n_linha][n_linha]
+            if deslocamento_novo[n_linha] != 0:
+                erros_lista[n_linha] = abs((deslocamento_novo[n_linha] - deslocamento[n_linha]) / deslocamento_novo[n_linha])
+        for i in range(len(Kg_filtrado)):
+            deslocamento[i] = deslocamento_novo[i]
+        if max(erros_lista) <= tolerancia :
+            break
+    return deslocamento, max(erros_lista)
+
+
 def calculo_deslocamentos(Kg_filtrado, Pg_filtrado_trelica):
     multiplicador_das_incognitas = []
     apoios = Pg_filtrado_trelica
@@ -296,10 +320,13 @@ def calculo_deslocamentos(Kg_filtrado, Pg_filtrado_trelica):
     deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
     return deslocamentos
 
+##########################################
+
 
 deslocamentos_dicio = {}
 for j in range(len(Kg_filtrado_lista)):
-    deslocamentos = calculo_deslocamentos(Kg_filtrado_lista[j], Pg_filtrado_trelica_lista[j])
+    # deslocamentos = calculo_deslocamentos(Kg_filtrado_lista[j], Pg_filtrado_trelica_lista[j])
+    deslocamentos, erro_max = jacobi(1000, 0.000001, Pg_filtrado_trelica_lista[j], Kg_filtrado_lista[j])
     for i in range(len(lista_l_nao_apoio_posicoes_indice[j])):
         deslocamentos_dicio[lista_l_nao_apoio_posicoes_indice[j][i]] = deslocamentos[i]
 
@@ -314,15 +341,7 @@ for i in deslocamentos_dicio:
             deslocamentos_expandido[i] = 0
     except:
         deslocamentos_expandido[i] = 0
-    # if deslocamentos_dicio[i].is_array():
-    #     deslocamentos_expandido[i] = 0
-    # else:
-    #     if deslocamentos_dicio[i]:
-    #         deslocamentos_expandido[i] = deslocamentos_dicio[i]
-    #     else:
-    #         deslocamentos_expandido[i] = 0
 
-# # Obtendo as reações de apoio estrutural
 
 apoios =  []
 for i in range(len(Kg_lista)):
@@ -340,4 +359,6 @@ meuArquivo = open('saida.txt', 'w')
 meuArquivo.write(f"Reacoes de apoio [N]\n{apoios}\n")
 meuArquivo.write(f"\nDeslocamentos [m]\n{deslocamentos_expandido}\n")
 meuArquivo.close()
+
+print("TERMINOU")
 

@@ -1,7 +1,7 @@
 import numpy as np
 from funcoesTermosol import importa
 from numpy.linalg import det
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo.xlsx')
 
 def matriz_para_dicio(K, posicao):
     dicio = {}
@@ -110,6 +110,7 @@ def calcula_Kg(trelica, trelica_posicoes):
     #         trelicas[n_trelicas][n_elementos].make_dicio(posicao_trelica)
     for i in range(len(trelica)):
         trelica[i].make_dicio(i+1)
+
 
     Kg = np.zeros((6,6))
     dicio1 = trelica[0].dicio
@@ -273,62 +274,31 @@ posicao_em_Pg_lista = []
 Pg_filtrado_trelica_lista = []
 for i in range(len(Kg_lista)):
     Kg_filtrado, posicao_em_Pg, Pg_filtrado_trelica = filtra_Kg(Kg_lista[i], lista_indices_nao_apoio_Pg_lista[i], Pg_lista[i], Pg_total)
-    # Kg_filtrado, Pg_filtrado = aplica_condicoes_contorno(Kg_lista[i], Pg, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg)
     Kg_filtrado_lista.append(Kg_filtrado)
     posicao_em_Pg_lista.append(posicao_em_Pg)
     Pg_filtrado_trelica_lista.append(Pg_filtrado_trelica)
-    # print(Kg_filtrado)
-    # print("\n")
 
 
+###### funcoes deslocamentos ######
 
-### funcoes jacobi / deslocamentos ##########################################
-
-# def resolve_jacobi(ite, tol, K, F):
-#     contador = 0
-#     linhas, colunas = np.shape(K)
-#     #linhas = len(F)
-#     #colunas = linhas
-#     X = np.zeros((linhas, 1))
-#     X_novo = np.zeros((linhas, 1))
-#     erros_lista = np.ones((linhas, 1))
-    
-#     while (contador < ite):
-#         for i in range(linhas):
-#             soma_k_vezes_u = 0
-#             for j in range(0,colunas):
-#                 if (j != i):
-#                     soma_k_vezes_u += K[i][j]*X[j]    
-                    
-#             resultado = (F[i]-soma_k_vezes_u)/K[i][i]
-#             X_novo[i] = resultado
-            
-#             if (X_novo[i] != 0):
-#                 erros_lista[i] = abs((X_novo[i] - X[i])/X_novo[i])
-            
-            
-#         for i in range(linhas):
-#             X[i] = X_novo[i]   
-            
-#         contador+=1
-        
-#         erro = np.amax(erros_lista)
-#         if erro <= tol :
-#             print('Chegou na tolerância! ', contador)
-#             break
-#     return X
-
-
-def Jacobian_matrix(Kg_filtrado, Pg_filtrado_trelica):
-
-    if det(Kg_filtrado) == 0:
-        return np.zeros((len(Pg_filtrado_trelica), len(Pg_filtrado_trelica)))
-    else:
-        Kg_filtrado = np.array(Kg_filtrado)
-        Pg_filtrado_trelica = np.array(Pg_filtrado_trelica)
-        Kg_filtrado_inv = np.linalg.inv(Kg_filtrado)
-        J = np.dot(Kg_filtrado_inv, Pg_filtrado_trelica)
-        return J
+def jacobi(n_iteracoes_max, tolerancia, Pg_filtrado, Kg_filtrado):
+    deslocamento = np.zeros((len(Kg_filtrado), 1))
+    deslocamento_novo = np.zeros((len(Kg_filtrado), 1))
+    erros_lista = np.zeros((len(Kg_filtrado), 1))
+    for iteracao in range(n_iteracoes_max):
+        for n_linha in range(len(Kg_filtrado)):
+            total_xa = 0
+            for n_coluna in range(0,len(Kg_filtrado[0])):
+                if n_coluna != n_linha:
+                    total_xa += Kg_filtrado[n_linha][n_coluna] * deslocamento[n_coluna]    
+            deslocamento_novo[n_linha] = (Pg_filtrado[n_linha] - total_xa) / Kg_filtrado[n_linha][n_linha]
+            if deslocamento_novo[n_linha] != 0:
+                erros_lista[n_linha] = abs((deslocamento_novo[n_linha] - deslocamento[n_linha]) / deslocamento_novo[n_linha])
+        for i in range(len(Kg_filtrado)):
+            deslocamento[i] = deslocamento_novo[i]
+        if max(erros_lista) <= tolerancia :
+            break
+    return deslocamento, max(erros_lista)
 
 
 def calculo_deslocamentos(Kg_filtrado, Pg_filtrado_trelica):
@@ -350,20 +320,15 @@ def calculo_deslocamentos(Kg_filtrado, Pg_filtrado_trelica):
     deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
     return deslocamentos
 
-##########################################################################
+##########################################
+
 
 deslocamentos_dicio = {}
 for j in range(len(Kg_filtrado_lista)):
-    # lista_resultado = resolve_jacobi(1000, 1e-8, Kg_filtrado_lista[j], Pg_filtrado_trelica_lista[j])
-    deslocamentos = Jacobian_matrix(Kg_filtrado_lista[j], Pg_filtrado_trelica_lista[j])
     # deslocamentos = calculo_deslocamentos(Kg_filtrado_lista[j], Pg_filtrado_trelica_lista[j])
+    deslocamentos, erro_max = jacobi(1000, 0.000001, Pg_filtrado_trelica_lista[j], Kg_filtrado_lista[j])
     for i in range(len(lista_l_nao_apoio_posicoes_indice[j])):
         deslocamentos_dicio[lista_l_nao_apoio_posicoes_indice[j][i]] = deslocamentos[i]
-
-    # for i in range(len(posicao_em_Pg_lista[j])):
-    #     # print(posicao_em_Pg_lista[j])
-    #     # print("\n")
-    #     deslocamentos_dicio[posicao_em_Pg[i]] = deslocamentos[i]
 
 
 deslocamentos_expandido = np.zeros((len(Pg_total),1))
@@ -376,15 +341,7 @@ for i in deslocamentos_dicio:
             deslocamentos_expandido[i] = 0
     except:
         deslocamentos_expandido[i] = 0
-    # if deslocamentos_dicio[i].is_array():
-    #     deslocamentos_expandido[i] = 0
-    # else:
-    #     if deslocamentos_dicio[i]:
-    #         deslocamentos_expandido[i] = deslocamentos_dicio[i]
-    #     else:
-    #         deslocamentos_expandido[i] = 0
 
-# # Obtendo as reações de apoio estrutural
 
 apoios =  []
 for i in range(len(Kg_lista)):
@@ -396,7 +353,6 @@ for i in range(len(Kg_lista)):
             apoios.append([round(calculo[0],1)])
 
 
-
 # # Escrevendo o arquivo de saída
 
 meuArquivo = open('saida.txt', 'w')
@@ -404,3 +360,8 @@ meuArquivo.write(f"Reacoes de apoio [N]\n{apoios}\n")
 meuArquivo.write(f"\nDeslocamentos [m]\n{deslocamentos_expandido}\n")
 meuArquivo.close()
 
+print("TERMINOU")
+
+## FAZER DESLOCAMENTO POR GAUSS
+## CONSERTAR KGs
+## CALCULAR DEFORMACOES, FORÇAS INTERNAS, TENSOES INTERNAS
