@@ -1,7 +1,7 @@
 import numpy as np
 from funcoesTermosol import importa
 from numpy.linalg import det
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo2.xlsx')
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo.xlsx')
 
 # Definindo elementos
 
@@ -136,18 +136,28 @@ for linha in range(len(Kg_filtrado_linha)):
 multiplicador_das_incognitas = []
 apoios = Pg_filtrado
 
-contador = 0
-while contador < len(Kg_filtrado):
-    l = []
-    for linha in range(len(Kg_filtrado)):
-        for coluna in range(len(Kg_filtrado[linha])):
-            if coluna == contador:
-                l.append(Kg_filtrado[linha][coluna])
-    multiplicador_das_incognitas.append(l)
-    contador+=1
+
+def Jacobian_matrix(Kg_filtrado, Pg_filtrado_trelica):
+    Kg_filtrado = np.array(Kg_filtrado)
+    Pg_filtrado_trelica = np.array(Pg_filtrado_trelica)
+    Kg_filtrado_inv = np.linalg.inv(Kg_filtrado)
+    J = np.dot(Kg_filtrado_inv, Pg_filtrado_trelica)
+    return J
+
+deslocamentos = Jacobian_matrix(Kg_filtrado, Pg_filtrado)
+
+# contador = 0
+# while contador < len(Kg_filtrado):
+#     l = []
+#     for linha in range(len(Kg_filtrado)):
+#         for coluna in range(len(Kg_filtrado[linha])):
+#             if coluna == contador:
+#                 l.append(Kg_filtrado[linha][coluna])
+#     multiplicador_das_incognitas.append(l)
+#     contador+=1
 # print(multiplicador_das_incognitas)
 # print(apoios)
-deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
+# deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
 print(deslocamentos)
 
 deslocamentos_expandido = np.zeros((len(Pg),1))
