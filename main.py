@@ -1,34 +1,19 @@
 import numpy as np
 from funcoesTermosol import importa
 from numpy.linalg import det
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada_exemplo.xlsx')
+from matplotlib import pyplot as plt
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
 
-def matriz_para_dicio(K, posicao):
-    dicio = {}
-    for linha in range(len(K)):
-        for coluna in range(len(K[linha])):
-            if posicao == 1:
-                dicio[linha, coluna] = [(linha, coluna),K[linha][coluna]]
-            if posicao == 2:
-                dicio[linha, coluna] = [(linha+2, coluna+2),K[linha][coluna]]
-            if posicao == 3:
-                if linha == 0 or linha == 1:
-                    if coluna == 0 or coluna == 1:
-                        dicio[linha, coluna] = [(linha+4, coluna+4),K[linha][coluna]]
-                    elif coluna == 2 or coluna == 3:
-                        dicio[linha, coluna] = [(linha+4, coluna-2),K[linha][coluna]]
-                elif linha == 2 or linha == 3:
-                    if coluna == 0 or coluna == 1:
-                        dicio[linha, coluna] = [(linha-2, coluna+4),K[linha][coluna]]
-                    elif coluna == 2 or coluna == 3:
-                        dicio[linha, coluna] = [(linha-2, coluna-2),K[linha][coluna]]
-    return dicio
+no_indice = {}
+
+for i in range(1, nn + 1):
+    no_indice[i] = (2*i-2,2*i-1)
 
 class elemento:
     def __init__(self, posicao, no0, nof, E, A):
         self.posicao = posicao
-        self.no0 = no0
-        self.nof = nof
+        self.no0 = no_indice[no0]
+        self.nof = no_indice[nof]
         self.x0 = N[0][int(no0-1)]
         self.y0 = N[1][int(no0-1)]
         self.xf = N[0][int(nof-1)]
@@ -42,13 +27,9 @@ class elemento:
                                       [self.cos*self.sen, self.sen**2, -self.cos*self.sen, -self.sen**2], 
                                       [-self.cos**2, -self.cos*self.sen, self.cos**2, self.cos*self.sen], 
                                       [-self.cos*self.sen, -self.sen**2, self.cos*self.sen, self.sen**2]])
-        self.dicio = {}
-    
-    def get_posicao(self):
-        return self.posicao
-
-    def make_dicio(self, posicao_trelica):
-        self.dicio = matriz_para_dicio(self.K, posicao_trelica)
+        self.tensao = 0
+        self.deformacao = 0
+        self.forca = 0
 
 
 def criacao_elementos():
@@ -60,84 +41,30 @@ def criacao_elementos():
 
 elementos = criacao_elementos()
 
-
-def criacao_trelicas(elementos):
-    trelicas = []
-    trelica_posicoes = []
-    trelica_nos = []
+def matriz_para_dicio(elementos):
     for element in elementos:
-        trelica = []
-        t_posicoes = []
-        t_nos = []
-        for e2 in elementos:
-            if e2.no0 == element.nof:
-                for e3 in elementos:
-                    if e3.no0 == e2.nof or e3.nof == e2.nof:
-                        if e3.nof == element.no0 or e3.no0 == element.no0:
-                            trelica.append(element)
-                            trelica.append(e2)
-                            trelica.append(e3)
-                            t_posicoes.append(element.posicao)
-                            t_posicoes.append(e2.posicao)
-                            t_posicoes.append(e3.posicao)
-                            t_nos.append(int(element.no0))
-                            t_nos.append(int(e2.no0))
-                            if e3.no0 == element.no0:
-                                t_nos.append(int(e3.nof))
-                            else:
-                                t_nos.append(int(e3.no0))
-                            break
-        if trelica != []:
-            if sorted(t_posicoes) not in trelica_posicoes:
-                trelicas.append(trelica)
-                trelica_posicoes.append(t_posicoes)
-                trelica_nos.append(t_nos)
+        a = element.no0[0], element.no0[1], element.nof[0], element.nof[1]
+        k_indice = {}
+        for i, j in zip(element.K, a):
+            for c, b in zip(i, a):
+                k_indice[(j, b)] = c
+        element.dicio = k_indice
 
-    return trelicas, trelica_posicoes, trelica_nos
+matriz_para_dicio(elementos)
 
-trelicas, trelica_posicoes, trelica_nos = criacao_trelicas(elementos)
-
-
-def calcula_Kg(trelica, trelica_posicoes):
-
-    # formando o dicio de cada elemento
-    # for n_trelicas in range(len(trelicas)):
-    #     for n_elementos in range(len(trelicas[n_trelicas])):
-    #         for lista in trelica_posicoes:
-    #             for n_posicoes in range(len(lista)):
-    #                 if trelicas[n_trelicas][n_elementos].posicao == lista[n_posicoes]:
-    #                     posicao_trelica = n_posicoes+1
-    #         trelicas[n_trelicas][n_elementos].make_dicio(posicao_trelica)
-    for i in range(len(trelica)):
-        trelica[i].make_dicio(i+1)
-
-
-    Kg = np.zeros((6,6))
-    dicio1 = trelica[0].dicio
-    dicio2 = trelica[1].dicio
-    dicio3 = trelica[2].dicio
-    for linha in range(len(Kg)):
-        for coluna in range(len(Kg[linha])):
-            v = 0
-            for valor in dicio1.values():
-                if (linha, coluna) == valor[0]:
-                    v += valor[1]
-                    break
-            for valor in dicio2.values():
-                if (linha, coluna) == valor[0]:
-                    v += valor[1]
-                    break
-            for valor in dicio3.values():
-                if (linha, coluna) == valor[0]:
-                    v += valor[1]
-                    break
-            Kg[linha][coluna] = v
+def calcula_Kg(elementos):
+    tam = no_indice[nn][1] + 1
+    Kg = np.zeros((tam,tam))
+    
+    for element in elementos:
+        for i in range(tam):
+            for j in range(tam):
+                indice = (i,j)
+                if indice in element.dicio:
+                    Kg[i][j] += element.dicio[indice]
     return Kg
 
-Kg_lista = []
-for i in range(len(trelicas)):
-    Kg_lista.append(calcula_Kg(trelicas[i], trelica_posicoes[i]))
-
+kg = calcula_Kg(elementos)
 
 def calcula_Pg_total():
     Pg = []
@@ -156,209 +83,127 @@ def calcula_Pg_total():
 
 Pg_total = calcula_Pg_total()
 
+def kg_filtrado(kg, Pg_total):
+    indices = [i for i, j in enumerate(Pg_total) if j == "R"]
+    tam = (no_indice[nn][1] + 1 - len(indices))
+    Kg_novo = np.zeros((tam,tam))
 
-def calcula_Pg(posicoes):
-    Pg = []
-    Pg_posicionados_indices = []
-    for posicao in posicoes:
-        if posicao != 1:
-            indices = [2*(posicao-1), 2*(posicao-1)+1]
-            if F[indices[0]] == 0:
-                con = False
-                for j in R:
-                    if indices[0] == j[0]:
-                        Pg.append("R")
-                        con = True
-                if con == False:
-                    Pg.append(0)
-            else:
-                Pg.append(F[indices[0]][0])
-
-            if F[indices[1]] == 0:
-                c = False
-                for j in R:
-                    if indices[1] == j[0]:
-                        Pg.append("R")
-                        c = True
-                if c == False:
-                    Pg.append(0)
-            else:
-                Pg.append(F[indices[1]][0])
-            Pg_posicionados_indices.append(indices[0])
-            Pg_posicionados_indices.append(indices[1])
-        else:
-            if F[posicao-1] == 0:
-                c = False
-                for j in R:
-                    if posicao-1 == j[0]:
-                        Pg.append("R")
-                        c = True
-                if c == False:
-                    Pg.append(0)
-            else:
-                Pg.append(F[posicao-1][0])
-
-            if F[posicao][0] == 0:
-                con = False
-                for j in R:
-                    if posicao == j[0]:
-                        Pg.append("R")
-                        con = True
-                if con == False:
-                    Pg.append(0)
-            else:
-                Pg.append(F[posicao][0])
-            Pg_posicionados_indices.append(posicao-1)
-            Pg_posicionados_indices.append(posicao)
-    return Pg, Pg_posicionados_indices
-
-
-def filtra_Pg(Pg, Pg_posicionados_indices):
-    lista_indices_nao_apoio_Pg = []
-    lista_indices_apoio_Pg = []
-    Pg_filtrado = []
-    l_nao_apoio_posicoes_indice = []
-    for i in range(len(Pg)):
-        if Pg[i] != "R":
-            lista_indices_nao_apoio_Pg.append(i)
-            Pg_filtrado.append(Pg[i])
-            l_nao_apoio_posicoes_indice.append(Pg_posicionados_indices[i])
-        else:
-            lista_indices_apoio_Pg.append(i)
-    return Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg, l_nao_apoio_posicoes_indice
+    a = 0
+    b = 0
+    for i, linha in enumerate(kg):
+        if i not in indices:
+            for j, coluna in enumerate(linha):
+                if j not in indices:
+                    Kg_novo[a][b] = coluna
+                    b += 1
+            a += 1
+            b = 0
     
+    Pg = [i for i in Pg_total if i != "R"]
+                
+    return Kg_novo, Pg
+    
+    
+kg_fil, Pg_fil = kg_filtrado(kg, Pg_total)
 
-Pg_lista = []
-Pg_filtrado_lista = []
-lista_indices_apoio_Pg_lista = []
-lista_indices_nao_apoio_Pg_lista = []
-lista_l_nao_apoio_posicoes_indice = []
-for posicoes in trelica_nos:
-    Pg, Pg_posicionados_indices = calcula_Pg(posicoes)
-    Pg_filtrado, lista_indices_apoio_Pg, lista_indices_nao_apoio_Pg, l_nao_apoio_posicoes_indice = filtra_Pg(Pg, Pg_posicionados_indices)
-    Pg_lista.append(Pg)
-    Pg_filtrado_lista.append(Pg_filtrado)
-    lista_indices_apoio_Pg_lista.append(lista_indices_apoio_Pg)
-    lista_indices_nao_apoio_Pg_lista.append(lista_indices_nao_apoio_Pg)
-    lista_l_nao_apoio_posicoes_indice.append(l_nao_apoio_posicoes_indice)
-
-
-def filtra_Kg(Kg, lista_indices_nao_apoio_Pg, Pg, Pg_total):
-    posicao_em_Pg_total = []
-    for linha in range(len(Kg)):
-        if linha in lista_indices_nao_apoio_Pg:
-            posicao_em_Pg_total.append(linha)
-
-    Kg_filtrado_linha = []
-    posicao_em_Pg = []
-    for linha in range(len(Kg)):
-        if linha in lista_indices_nao_apoio_Pg:
-            Kg_filtrado_linha.append(Kg[linha])
-            posicao_em_Pg.append(linha)
-
-    Pg_filtrado_trelica = []
-    for posicao in posicao_em_Pg:
-        Pg_filtrado_trelica.append(Pg[posicao])
-
-    Kg_filtrado = []
-    for linha in range(len(Kg_filtrado_linha)):
-        l = []
-        for coluna in range(len(Kg_filtrado_linha[linha])):
-            if coluna in lista_indices_nao_apoio_Pg:
-                l.append(Kg_filtrado_linha[linha][coluna])
-        Kg_filtrado.append(l)
-    return Kg_filtrado, posicao_em_Pg, Pg_filtrado_trelica
-
-Kg_filtrado_lista = []
-posicao_em_Pg_lista = []
-Pg_filtrado_trelica_lista = []
-for i in range(len(Kg_lista)):
-    Kg_filtrado, posicao_em_Pg, Pg_filtrado_trelica = filtra_Kg(Kg_lista[i], lista_indices_nao_apoio_Pg_lista[i], Pg_lista[i], Pg_total)
-    Kg_filtrado_lista.append(Kg_filtrado)
-    posicao_em_Pg_lista.append(posicao_em_Pg)
-    Pg_filtrado_trelica_lista.append(Pg_filtrado_trelica)
-
-
-###### funcoes deslocamentos ######
-
-def jacobi(n_iteracoes_max, tolerancia, Pg_filtrado, Kg_filtrado):
-    deslocamento = np.zeros((len(Kg_filtrado), 1))
-    deslocamento_novo = np.zeros((len(Kg_filtrado), 1))
-    erros_lista = np.zeros((len(Kg_filtrado), 1))
-    for iteracao in range(n_iteracoes_max):
-        for n_linha in range(len(Kg_filtrado)):
-            total_xa = 0
-            for n_coluna in range(0,len(Kg_filtrado[0])):
-                if n_coluna != n_linha:
-                    total_xa += Kg_filtrado[n_linha][n_coluna] * deslocamento[n_coluna]    
-            deslocamento_novo[n_linha] = (Pg_filtrado[n_linha] - total_xa) / Kg_filtrado[n_linha][n_linha]
-            if deslocamento_novo[n_linha] != 0:
-                erros_lista[n_linha] = abs((deslocamento_novo[n_linha] - deslocamento[n_linha]) / deslocamento_novo[n_linha])
-        for i in range(len(Kg_filtrado)):
-            deslocamento[i] = deslocamento_novo[i]
-        if max(erros_lista) <= tolerancia :
+def gauss_seidel(Pg_fil, kg_fil, tol, max_iter):
+    indices = [i for i, j in enumerate(Pg_total) if j == "R"]
+    x = np.zeros(kg_fil.shape[0])
+    
+    erros = []
+    
+    for i in range(max_iter):
+        for j in range(kg_fil.shape[0]):
+            x[j] = (Pg_fil[j] - np.dot(kg_fil[j, :j], x[:j]) - np.dot(kg_fil[j, j+1:], x[j+1:]))/kg_fil[j, j]
+        erro = np.linalg.norm(np.dot(kg_fil, x) - Pg_fil)
+        erro = erro/np.linalg.norm(Pg_fil)
+        erros.append(erro)
+        if erro < tol:
             break
-    return deslocamento, max(erros_lista)
+    
+    x_expandido = x.copy()
+    for i in indices:
+        x_expandido = np.insert(x_expandido, i, 0)
+    
+    return x, x_expandido, erros
+    
+x, x_expandido, erros = gauss_seidel(Pg_fil, kg_fil, 1e-6, 1000)
+
+def calcula_reacoes(x_expandido, kg):
+    indices = [i for i, j in enumerate(Pg_total) if j == "R"]
+    reacoes = np.dot(kg, x_expandido)
+    reacoes = [reacoes[i] for i in indices]
+    return reacoes
+
+reacoes = calcula_reacoes(x_expandido, kg)
+
+def tensão_deformação(elementos, x_expandido):
+    for element in elementos:
+        _cos = element.cos
+        _sen = element.sen
+        a = element.no0[0], element.no0[1], element.nof[0], element.nof[1]
+        u = np.array([x_expandido[i] for i in a])
+        element.tensao = (element.E/element.L)*np.dot(np.array([-_cos, -_sen, _cos, _sen]), u)
+        element.deformacao = (1/element.L)*np.dot(np.array([-_cos, -_sen, _cos, _sen]), u)
+        element.forca = element.tensao*element.A
+    
+tensão_deformação(elementos, x_expandido)
+
+tensao = [element.tensao for element in elementos]
+forca = [element.forca for element in elementos]
+deformacao = [element.deformacao for element in elementos]
+
+print("Reacoes de apoio [N]")
+print(reacoes)
+
+print("\n")
+print("Deslocamentos [m]")
+print(x_expandido)
+
+print("\n")
+print("Deformacoes []")
+print(deformacao)
+
+print("\n")
+print("Forcas internas [N]")
+print(forca)
+
+print("\n")
+print("Tensoes internas [Pa]")
+print(tensao)
+
+testex = N[0] + x_expandido[::2]
+testey = N[1] + x_expandido[1::2]
+
+def plota(N,Inc):
+    # Numero de membros
+    nm = len(Inc[:,0])
+    
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+
+#    plt.show()
+    fig = plt.figure()
+    # Passa por todos os membros
+    for i in range(nm):
+        
+        # encontra no inicial [n1] e final [n2] 
+        n1 = int(Inc[i,0])
+        n2 = int(Inc[i,1])        
+
+        plt.plot([N[0,n1-1],N[0,n2-1]],[N[1,n1-1],N[1,n2-1]],color='r',linewidth=3)
 
 
-def calculo_deslocamentos(Kg_filtrado, Pg_filtrado_trelica):
-    multiplicador_das_incognitas = []
-    apoios = Pg_filtrado_trelica
+    plt.xlabel('x [m]')
+    plt.ylabel('y [m]')
+    plt.grid(True)
+    plt.axis('equal')
 
-    if det(Kg_filtrado) == 0:
-        return np.zeros((len(Pg_filtrado_trelica), len(Pg_filtrado_trelica)))
+deforma = [testex, testey]
+deforma = np.array(deforma)
 
-    contador = 0
-    while contador < len(Kg_filtrado):
-        l = []
-        for linha in range(len(Kg_filtrado)):
-            for coluna in range(len(Kg_filtrado[linha])):
-                if coluna == contador:
-                    l.append(Kg_filtrado[linha][coluna])
-        multiplicador_das_incognitas.append(l)
-        contador+=1
-    deslocamentos = np.linalg.solve(multiplicador_das_incognitas, apoios)
-    return deslocamentos
+plota(N, Inc)
 
-##########################################
+plota(deforma, Inc)
 
-
-deslocamentos_dicio = {}
-for j in range(len(Kg_filtrado_lista)):
-    # deslocamentos = calculo_deslocamentos(Kg_filtrado_lista[j], Pg_filtrado_trelica_lista[j])
-    deslocamentos, erro_max = jacobi(1000, 0.000001, Pg_filtrado_trelica_lista[j], Kg_filtrado_lista[j])
-    for i in range(len(lista_l_nao_apoio_posicoes_indice[j])):
-        deslocamentos_dicio[lista_l_nao_apoio_posicoes_indice[j][i]] = deslocamentos[i]
-
-
-deslocamentos_expandido = np.zeros((len(Pg_total),1))
-contagem = np.arange(0, len(Pg_total))
-for i in deslocamentos_dicio:
-    try:
-        if deslocamentos_dicio[i]:
-            deslocamentos_expandido[i] = deslocamentos_dicio[i]
-        else:
-            deslocamentos_expandido[i] = 0
-    except:
-        deslocamentos_expandido[i] = 0
-
-
-apoios =  []
-for i in range(len(Kg_lista)):
-    for linha in range(len(Kg_lista[i])):
-        calculo = [0]
-        if linha in lista_indices_apoio_Pg_lista[i]:
-            for coluna in range(len(Kg_lista[i][linha])):
-                calculo += Kg_lista[i][linha][coluna] * deslocamentos_expandido[coluna]
-            apoios.append([round(calculo[0],1)])
-
-
-# # Escrevendo o arquivo de saída
-
-meuArquivo = open('saida.txt', 'w')
-meuArquivo.write(f"Reacoes de apoio [N]\n{apoios}\n")
-meuArquivo.write(f"\nDeslocamentos [m]\n{deslocamentos_expandido}\n")
-meuArquivo.close()
-
-print("TERMINOU")
-
+plt.show()
